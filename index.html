@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zyron Kinetic OS</title>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+        :root {
+            --primary: #fa2d48;
+            --glass-bg: rgba(20, 20, 20, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #ffffff;
+            --text-sub: rgba(255, 255, 255, 0.6);
+            --blur-amt: 50px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background: #000;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            font-size: 14px;
+        }
+
+        /* --- DYNAMIC BACKGROUND --- */
+        #bg-layer {
+            position: fixed; top: -10%; left: -10%; width: 120%; height: 120%;
+            z-index: -1;
+            background-size: cover; background-position: center;
+            filter: blur(80px) brightness(0.6);
+            transition: background-image 0.8s ease-in-out;
+            animation: breathe 20s infinite alternate ease-in-out;
+        }
+        @keyframes breathe { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+        .bg-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: -1; }
+
+        /* --- LAYOUT --- */
+        .app-container {
+            display: grid;
+            grid-template-columns: 240px 1fr 320px; 
+            grid-template-rows: 1fr 90px;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.2);
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            grid-row: 1 / 2;
+            background: rgba(0,0,0,0.2); backdrop-filter: blur(40px);
+            border-right: 1px solid var(--glass-border);
+            padding: 25px 20px; display: flex; flex-direction: column; gap: 8px;
+        }
+
+        /* --- KINETIC LOGO (SVG FIXED) --- */
+        .logo-container {
+            position: relative;
+            width: 100%;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            perspective: 800px;
+        }
+
+        .logo-card {
+            position: relative;
+            width: 55px; height: 55px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* The Thunder (Now an SVG for reliability) */
+        .logo-svg {
+            width: 32px; height: 32px;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
+            z-index: 1;
+            transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* The Dot (Opposite Motion) */
+        .logo-dot {
+            position: absolute;
+            top: 8px; right: 8px;
+            width: 10px; height: 10px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #fff;
+            z-index: 2;
+            transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .logo-text {
+            font-family: 'SF Pro Display', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #fff, #aaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            pointer-events: none;
+        }
+
+        /* --- NAV ITEMS --- */
+        .nav-item {
+            display: flex; align-items: center; gap: 15px; padding: 12px 15px;
+            border-radius: 12px; color: var(--text-sub); cursor: pointer; transition: 0.2s;
+            font-weight: 500; font-size: 0.95rem;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.1); color: #fff; }
+        .nav-item ion-icon { font-size: 1.4rem; }
+        .divider { height: 1px; background: var(--glass-border); margin: 20px 0; }
+        .library-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-sub); margin-bottom: 10px; padding-left: 10px; }
+
+        /* --- MAIN CONTENT --- */
+        .main-view {
+            grid-column: 2 / 3; grid-row: 1 / 2;
+            overflow-y: auto; padding: 30px 40px; position: relative; scroll-behavior: smooth;
+        }
+        
+        /* RESTORED SEARCH BAR */
+        .search-wrapper { position: sticky; top: 0; z-index: 50; margin-bottom: 30px; padding: 10px 0; background: transparent; }
+        .search-bar {
+            background: rgba(40, 40, 40, 0.6); 
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 50px;
+            padding: 14px 24px; 
+            display: flex; align-items: center; gap: 12px;
+            width: 100%; max-width: 420px; 
+            transition: 0.3s;
+        }
+        .search-bar:focus-within { 
+            background: rgba(50, 50, 50, 0.9);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4); 
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .search-bar ion-icon { font-size: 1.4rem; color: #aaa; }
+        .search-bar input { background: transparent !important; border: none; color: #fff !important; width: 100%; outline: none; font-size: 1rem; }
+        input:-webkit-autofill { -webkit-box-shadow: 0 0 0 30px #2a2a2a inset !important; -webkit-text-fill-color: white !important; }
+
+        .hero-header { font-family: 'SF Pro Display', sans-serif; font-size: 2rem; font-weight: 700; margin-bottom: 25px; letter-spacing: -0.5px; }
+
+        /* Grids */
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 25px; }
+        .song-card {
+            background: rgba(255,255,255,0.05); border-radius: 18px; padding: 16px;
+            transition: 0.3s; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .song-card:hover { background: rgba(255,255,255,0.15); transform: translateY(-5px); }
+        .card-img { width: 100%; aspect-ratio: 1; border-radius: 12px; object-fit: cover; margin-bottom: 15px; }
+        .card-title { font-weight: 600; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px; }
+        .card-sub { font-size: 0.85rem; color: var(--text-sub); }
+
+        /* --- RIGHT PANEL --- */
+        .suggestions-panel {
+            grid-column: 3 / 4; grid-row: 1 / 2;
+            background: rgba(0,0,0,0.15); backdrop-filter: blur(40px);
+            border-left: 1px solid var(--glass-border); padding: 30px; overflow-y: auto;
+        }
+        .panel-header { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: #fff; }
+        
+        .np-card {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px; padding: 25px; text-align: center; margin-bottom: 35px;
+            display: none; animation: fadeIn 0.6s ease;
+        }
+        .np-card.active { display: block; }
+        .np-img { width: 100%; aspect-ratio: 1; border-radius: 14px; margin-bottom: 18px; object-fit: cover; }
+        
+        .queue-list { display: flex; flex-direction: column; gap: 10px; }
+        .queue-item { display: flex; align-items: center; gap: 14px; padding: 10px; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+        .queue-item:hover { background: rgba(255,255,255,0.1); }
+        .queue-img { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; }
+
+        /* --- PLAYER BAR --- */
+        .player-bar {
+            grid-column: 1 / 4; grid-row: 2 / 3;
+            background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(50px);
+            border-top: 1px solid var(--glass-border);
+            display: flex; align-items: center; justify-content: space-between; padding: 0 30px; z-index: 100;
+        }
+        .pb-left { display: flex; align-items: center; gap: 16px; width: 25%; }
+        .pb-left img { width: 52px; height: 52px; border-radius: 8px; background: #333; object-fit: cover; }
+        .pb-center { width: 50%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .controls { display: flex; align-items: center; gap: 28px; margin-bottom: 6px; }
+        .btn-icon { font-size: 1.5rem; color: #bbb; cursor: pointer; transition: 0.2s; }
+        .btn-icon:hover { color: #fff; transform: scale(1.1); }
+        .play-btn { 
+            width: 42px; height: 42px; background: #fff; color: #000; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; font-size: 1.6rem; cursor: pointer;
+        }
+        .play-btn:hover { transform: scale(1.1); }
+        .progress-bar { width: 100%; max-width: 500px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; position: relative; cursor: pointer; }
+        .progress-fill { height: 100%; width: 0%; background: #fff; border-radius: 2px; }
+        .pb-right { width: 25%; display: flex; justify-content: flex-end; align-items: center; gap: 20px; }
+
+        #infiniteLoader { width: 100%; text-align: center; padding: 20px; display: none; color: #aaa; }
+        .hidden { display: none; }
+        .loader { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s infinite linear; margin: 40px auto; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    </style>
+</head>
+<body>
+
+    <div id="bg-layer"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="app-container">
+        <nav class="sidebar">
+            
+            <div class="logo-container" id="logoArea">
+                <div class="logo-card">
+                    <svg class="logo-svg" id="thunderIcon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="#FFD700" stroke="#FFA500" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div class="logo-dot" id="floatingDot"></div>
+                </div>
+                <div class="logo-text">Zyron</div>
+            </div>
+
+            <div class="nav-item active" id="nav-home" onclick="loadView('home')"><ion-icon name="home-outline"></ion-icon> Listen Now</div>
+            <div class="nav-item" id="nav-browse" onclick="loadView('browse')"><ion-icon name="grid-outline"></ion-icon> Browse</div>
+            <div class="nav-item" id="nav-radio" onclick="loadView('radio')"><ion-icon name="radio-outline"></ion-icon> Radio</div>
+            <div class="divider"></div>
+            <div class="library-title">Your Library</div>
+            <div class="nav-item" id="nav-fav" onclick="loadView('favorites')"><ion-icon name="heart-outline"></ion-icon> Favorites</div>
+        </nav>
+
+        <main class="main-view" id="mainContainer">
+            <div class="search-wrapper">
+                <div class="search-bar">
+                    <ion-icon name="search-outline"></ion-icon>
+                    <input type="text" id="searchInput" placeholder="Search Artists, Songs, Lyrics...">
+                </div>
+            </div>
+
+            <div id="homeContent">
+                <h1 class="hero-header">Top Picks for You</h1>
+                <div class="grid-container" id="recommendationsGrid"></div>
+                <h1 class="hero-header" style="margin-top: 40px;">New Releases</h1>
+                <div class="grid-container" id="newGrid"></div>
+                <div id="infiniteLoader"><div class="loader" style="width:20px; height:20px; margin:0 auto;"></div></div>
+            </div>
+
+            <div id="browseContent" class="hidden">
+                <h1 class="hero-header">Browse Genres</h1>
+                <div class="grid-container" id="browseGrid"></div>
+            </div>
+
+            <div id="radioContent" class="hidden">
+                <h1 class="hero-header">Live Radio</h1>
+                <div class="grid-container" id="radioGrid"></div>
+            </div>
+
+            <div id="searchResults" class="hidden">
+                <h1 class="hero-header">Search Results</h1>
+                <div class="loader" id="searchLoader" style="display:none;"></div>
+                <div class="grid-container" id="resultsGrid"></div>
+            </div>
+
+            <div id="favoritesView" class="hidden">
+                <h1 class="hero-header" style="color:#fa2d48;">Your Favorites</h1>
+                <div class="grid-container" id="favoritesGrid"></div>
+            </div>
+        </main>
+
+        <aside class="suggestions-panel">
+            <div class="panel-header">Playing Next</div>
+            <div class="np-card" id="npCard">
+                <img src="" class="np-img" id="npImgLarge">
+                <h3 style="margin-bottom:6px; font-size:1.1rem;" id="npTitleLarge">Song</h3>
+                <p style="color:var(--text-sub); font-size:0.9rem;" id="npArtistLarge">Artist</p>
+            </div>
+            <div class="panel-header" style="font-size:0.95rem; opacity:0.8; margin-top:20px;">Similar Songs</div>
+            <div class="queue-list" id="queueList">
+                <div style="color:var(--text-sub); font-size:0.9rem; padding:10px;">Play a song to start...</div>
+            </div>
+        </aside>
+
+        <footer class="player-bar">
+            <div class="pb-left">
+                <img src="https://via.placeholder.com/50" id="pbImg">
+                <div style="display:flex; flex-direction:column; gap:3px;">
+                    <span style="font-weight:600; font-size:0.95rem;" id="pbTitle">Not Playing</span>
+                    <span style="font-size:0.8rem; color:var(--text-sub);" id="pbArtist">--</span>
+                </div>
+                <ion-icon name="heart-outline" style="font-size:1.4rem; cursor:pointer; margin-left:15px;" id="favBtn" onclick="toggleFavorite()"></ion-icon>
+            </div>
+            <div class="pb-center">
+                <div class="controls">
+                    <ion-icon name="shuffle-outline" class="btn-icon"></ion-icon>
+                    <ion-icon name="play-skip-back" class="btn-icon" onclick="prevSong()"></ion-icon>
+                    <div class="play-btn" onclick="togglePlay()"><ion-icon name="play" id="playIcon"></ion-icon></div>
+                    <ion-icon name="play-skip-forward" class="btn-icon" onclick="nextSong()"></ion-icon>
+                    <ion-icon name="repeat-outline" class="btn-icon"></ion-icon>
+                </div>
+                <div class="progress-bar" id="progBar"><div class="progress-fill" id="progFill"></div></div>
+            </div>
+            <div class="pb-right">
+                <ion-icon name="mic-outline" class="btn-icon"></ion-icon>
+                <ion-icon name="volume-medium-outline" class="btn-icon"></ion-icon>
+                <ion-icon name="expand-outline" class="btn-icon"></ion-icon>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // --- LOGO MOTION SCRIPT ---
+        const thunder = document.getElementById('thunderIcon');
+        const dot = document.getElementById('floatingDot');
+        const logoCard = document.querySelector('.logo-card');
+        
+        document.addEventListener('mousemove', (e) => {
+            // Calculate movement intensity
+            let xAxis = (window.innerWidth / 2 - e.pageX) / 25;
+            let yAxis = (window.innerHeight / 2 - e.pageY) / 25;
+            
+            // OPPOSITE MOTION LOGIC
+            // Thunder moves WITH the mouse
+            thunder.style.transform = `translate(${xAxis}px, ${yAxis}px) scale(1.1)`;
+            
+            // Dot moves AGAINST the mouse (creates depth)
+            dot.style.transform = `translate(${-xAxis * 2}px, ${-yAxis * 2}px)`;
+            
+            // Card tilts slightly
+            logoCard.style.transform = `rotateY(${xAxis/2}deg) rotateX(${-yAxis/2}deg)`;
+        });
+
+        // --- MUSIC ENGINE ---
+        const audio = new Audio();
+        let currentSong = null;
+        let isPlaying = false;
+        let favorites = [];
+        let currentQueue = [];
+        let queueIndex = 0;
+        let isFetchingMore = false;
+        const randomTerms = ['pop', 'rock', 'jazz', 'hip hop', 'workout', 'party', 'chill', 'focus', 'indie', 'soul', 'k-pop', 'latin', 'edm'];
+
+        window.onload = () => {
+            document.getElementById('bg-layer').style.backgroundImage = "url('https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=1600')";
+            loadGrid('top global 2024', 'recommendationsGrid', 8);
+            loadGrid('latest hits', 'newGrid', 8);
+            loadGrid('pop music', 'browseGrid', 15);
+            loadGrid('lofi beats', 'radioGrid', 15);
+            document.getElementById('mainContainer').addEventListener('scroll', handleInfiniteScroll);
+        };
+
+        function handleInfiniteScroll() {
+            const container = document.getElementById('mainContainer');
+            const homeContent = document.getElementById('homeContent');
+            if(homeContent.classList.contains('hidden')) return;
+            if(container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
+                if(!isFetchingMore) { isFetchingMore = true; loadMoreSongs(); }
+            }
+        }
+
+        async function loadMoreSongs() {
+            const loader = document.getElementById('infiniteLoader');
+            loader.style.display = 'block';
+            const randomTerm = randomTerms[Math.floor(Math.random() * randomTerms.length)];
+            await loadGrid(randomTerm, 'newGrid', 8); 
+            loader.style.display = 'none';
+            isFetchingMore = false;
+        }
+
+        async function loadGrid(term, elementId, limit) {
+            const container = document.getElementById(elementId);
+            try {
+                const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=${limit}`);
+                const data = await res.json();
+                data.results.forEach(song => {
+                    const card = createCard(song, data.results); 
+                    container.appendChild(card);
+                });
+            } catch(e) {}
+        }
+
+        function createCard(song, contextList) {
+            const div = document.createElement('div');
+            div.className = 'song-card';
+            div.innerHTML = `
+                <img src="${song.artworkUrl100.replace('100x100','400x400')}" class="card-img">
+                <div class="card-title">${song.trackName}</div>
+                <div class="card-sub">${song.artistName}</div>
+            `;
+            const index = contextList.indexOf(song);
+            div.onclick = () => playFromQueue(contextList, index);
+            return div;
+        }
+
+        function playFromQueue(list, index) {
+            currentQueue = list;
+            queueIndex = index;
+            playSong(list[index]);
+        }
+
+        function playSong(song) {
+            if(!song) return;
+            currentSong = song;
+            audio.src = song.previewUrl;
+            audio.play();
+            isPlaying = true;
+
+            const highRes = song.artworkUrl100.replace('100x100','800x800');
+            document.getElementById('bg-layer').style.backgroundImage = `url('${highRes}')`;
+            document.getElementById('pbImg').src = song.artworkUrl100;
+            document.getElementById('pbTitle').innerText = song.trackName;
+            document.getElementById('pbArtist').innerText = song.artistName;
+            document.getElementById('playIcon').setAttribute('name', 'pause');
+
+            document.getElementById('npCard').classList.add('active');
+            document.getElementById('npImgLarge').src = highRes;
+            document.getElementById('npTitleLarge').innerText = song.trackName;
+            document.getElementById('npArtistLarge').innerText = song.artistName;
+
+            updateFavBtn();
+            fetchSuggestions(song.artistName);
+        }
+
+        function togglePlay() {
+            if(!audio.src) return;
+            if(isPlaying) { audio.pause(); document.getElementById('playIcon').setAttribute('name', 'play'); }
+            else { audio.play(); document.getElementById('playIcon').setAttribute('name', 'pause'); }
+            isPlaying = !isPlaying;
+        }
+
+        function nextSong() {
+            if(currentQueue.length > 0) {
+                queueIndex = (queueIndex + 1) % currentQueue.length;
+                playSong(currentQueue[queueIndex]);
+            }
+        }
+
+        function prevSong() {
+            if(currentQueue.length > 0) {
+                if(audio.currentTime > 3) { audio.currentTime = 0; return; }
+                queueIndex = (queueIndex - 1 + currentQueue.length) % currentQueue.length;
+                playSong(currentQueue[queueIndex]);
+            }
+        }
+
+        async function fetchSuggestions(artist) {
+            const queueList = document.getElementById('queueList');
+            try {
+                const res = await fetch(`https://itunes.apple.com/search?term=${artist}&media=music&entity=song&limit=15`);
+                const data = await res.json();
+                queueList.innerHTML = ''; 
+                const suggestions = data.results.filter(s => s.trackId !== currentSong.trackId);
+                suggestions.forEach((song, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'queue-item';
+                    item.innerHTML = `
+                        <img src="${song.artworkUrl100}" class="queue-img">
+                        <div class="queue-info"><h4>${song.trackName}</h4><p>${song.artistName}</p></div>
+                    `;
+                    item.onclick = () => playFromQueue(suggestions, idx);
+                    queueList.appendChild(item);
+                });
+            } catch(e) {}
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('keypress', (e) => {
+            if(e.key === 'Enter' && searchInput.value) performSearch(searchInput.value);
+        });
+
+        async function performSearch(term) {
+            ['homeContent', 'browseContent', 'radioContent', 'favoritesView'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById('searchResults').classList.remove('hidden');
+            document.getElementById('resultsGrid').innerHTML = '';
+            document.getElementById('searchLoader').style.display = 'block';
+
+            try {
+                const res = await fetch(`https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=25`);
+                const data = await res.json();
+                document.getElementById('searchLoader').style.display = 'none';
+                data.results.forEach((song, idx) => {
+                    const card = createCard(song, data.results);
+                    document.getElementById('resultsGrid').appendChild(card);
+                });
+            } catch(e) {}
+        }
+
+        function toggleFavorite() {
+            if(!currentSong) return;
+            const idx = favorites.findIndex(s => s.trackId === currentSong.trackId);
+            if(idx === -1) favorites.push(currentSong); else favorites.splice(idx, 1);
+            updateFavBtn(); renderFavorites();
+        }
+
+        function updateFavBtn() {
+            const btn = document.getElementById('favBtn');
+            const isFav = currentSong && favorites.some(s => s.trackId === currentSong.trackId);
+            btn.setAttribute('name', isFav ? 'heart' : 'heart-outline');
+            btn.style.color = isFav ? '#fa2d48' : '#fff';
+        }
+
+        function renderFavorites() {
+            const grid = document.getElementById('favoritesGrid');
+            grid.innerHTML = '';
+            favorites.forEach((song, idx) => {
+                grid.appendChild(createCard(song, favorites));
+            });
+        }
+
+        window.loadView = (view) => {
+            ['homeContent', 'browseContent', 'radioContent', 'searchResults', 'favoritesView'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+            if(view === 'home') { document.getElementById('homeContent').classList.remove('hidden'); document.getElementById('nav-home').classList.add('active'); }
+            if(view === 'browse') { document.getElementById('browseContent').classList.remove('hidden'); document.getElementById('nav-browse').classList.add('active'); }
+            if(view === 'radio') { document.getElementById('radioContent').classList.remove('hidden'); document.getElementById('nav-radio').classList.add('active'); }
+            if(view === 'favorites') { document.getElementById('favoritesView').classList.remove('hidden'); document.getElementById('nav-fav').classList.add('active'); renderFavorites(); }
+        };
+
+        audio.addEventListener('timeupdate', () => {
+            if(audio.duration) document.getElementById('progFill').style.width = (audio.currentTime / audio.duration * 100) + "%";
+        });
+        document.getElementById('progBar').addEventListener('click', (e) => {
+            audio.currentTime = (e.offsetX / e.target.clientWidth) * audio.duration;
+        });
+        audio.addEventListener('ended', nextSong);
+
+    </script>
+</body>
+</html>
